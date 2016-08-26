@@ -1,0 +1,4 @@
+"date","high","low","boxnumber","column","status.xo","nextX","nextO","status.bs","lastNextX","lastNextO"
+2016-06-11,91.5,91.5,92,1,"O",92,91,"Sell",92,91
+2016-06-12,91.99,91.01,92,1,"O",92,91,"Sell",92,91
+2016-06-13,92.00,91.01,92,2,"X",93.00,89.00,"Buy",92,91

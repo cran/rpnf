@@ -6,6 +6,8 @@
 #' @return a single or a vector of integer boxnumbers
 #' This function transforms a given quote into an unique integer box number
 quote2box <- function(quote, boxsize=1, log=FALSE) {
+  warning("Function quote2box() is deprecated and should be replaced by quote2boxnumber()!")
+  
   if (!is.numeric(quote)) {
     stop("Argument quote has to be numeric!")
   }

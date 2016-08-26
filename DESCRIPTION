@@ -1,24 +1,21 @@
 Package: rpnf
 Type: Package
 Title: Point and Figure Package
-Version: 1.0.4
-Date: 2015-10-11
+Version: 1.0.5
+Date: 2016-08-26
 Author: Sascha Herrmann
 Maintainer: Sascha Herrmann <sascha.herrmann.consulting@gmail.com>
-Description: A set of functions to analyze and print the development of a commodity using the Point and Figure (P&F) approach. A P&F processor can be used to calculate daily statistics for the time series. These statistics can be used for deeper investigations as well as to create plots. Plots can be generated as well known X/O Plots in plain TXT format, and additionally in a more graphical format.
+Description: A set of functions to analyze and print the development of a
+    commodity using the Point and Figure (P&F) approach. A P&F processor can be used
+    to calculate daily statistics for the time series. These statistics can be used
+    for deeper investigations as well as to create plots. Plots can be generated as
+    well known X/O Plots in plain text format, and additionally in a more graphical
+    format.
 License: GPL-3
 Depends: R (>= 3.0.0)
 Suggests: testthat
-Collate: 'pnfplot.R' 'pnfplottxt.R' 'pnfprocessor.R' 'rpnf-package.R'
-        'box2lower.R' 'box2upper.R' 'getLogBoxsize.R' 'nextBox.R'
-        'nextReversal.R' 'quote2box.R' 'xo.processor.R'
-        'fallingBottom.R' 'maxBox.R' 'minBox.R' 'bp.signalprocessor.R'
-        'currentVPOBreakoutMethod.R' 'currentVPOReversalMethod.R'
-        'doubleBottom.R' 'doubleTop.R' 'fallingTop.R' 'raisingBottom.R'
-        'raisingTop.R' 'rs.signal.processor.R' 'signalanalyzer.R'
-        'xo.priceobjective.processor.R' 'xo.signalprocessor.R'
-        'xo.trendline.processor.R'
+RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2015-10-11 19:31:33 UTC; root
+Packaged: 2016-08-26 08:28:14 UTC; root
 Repository: CRAN
-Date/Publication: 2015-10-12 08:58:52
+Date/Publication: 2016-08-26 14:30:43

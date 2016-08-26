@@ -2,10 +2,10 @@
 #' 
 #' This is the main PNF-Workhorse, which transforms a given time series into X and O's.
 #' Furthermore it provides already simple Buy/Sell signals, based on checking if the second last colum.
-#' @param high
-#' @param low
-#' @param date
-#' @param reversal
+#' @param high Vector of high quotes
+#' @param low Vector of low quotes. If skipped, high are taken as low.
+#' @param date Vector of dates of the time series.
+#' @param reversal Number of boxes necessary for a reversal
 #' @param boxsize A single numeric value, indicating the boxsize to be considered.
 #' @param log TRUE, if logarithmic scales should be used.
 #' @keywords internal
@@ -49,97 +49,111 @@ xo.processor <- function(high,low=high, date, reversal=3L, boxsize=1, log=FALSE)
   lastNextO <- rep(NA,length.out=length(high))  # remember last known nextO, necessary to identify buy/sell changes
   column <- rep(NA,length.out=length(high))     # counter for current P&F column
   
+  # # TODO improve initialization
+  # status.xo[1] = "X"
+  # boxnumber[1] = quote2box(quote=high[1],boxsize=boxsize,log=log)
+  # status.bs[1] = "Buy"
+  # nextX[1] = high[1]
+  # lastNextX[1] = high[1]
+  # nextO[1] = low[1]
+  # lastNextO[1] = low[1]
+  # column[1] = 1
+  
   # TODO improve initialization
-  status.xo[1] = "X"
-  boxnumber[1] = quote2box(quote=high[1],boxsize=boxsize,log=log)
-  status.bs[1] = "Buy"
-  nextX[1] = high[1]
-  lastNextX[1] = high[1]
-  nextO[1] = low[1]
-  lastNextO[1] = low[1]
+  status.xo[1] = "O"
+  boxnumber[1] = quoteToBoxnumber(quote=high[1], status="O", boxsize=boxsize, log=log)
+  status.bs[1] = "Sell"
+  nextX[1] = nextBox(high[1],"X", boxsize=boxsize,log=log)
+  lastNextX[1] = nextBox(high[1],"X", boxsize=boxsize,log=log)
+  nextO[1] = nextBox(low[1],"O", boxsize=boxsize,log=log)
+  lastNextO[1] = nextBox(low[1],"O", boxsize=boxsize,log=log)
   column[1] = 1
   
-  # pnfprocessor
-  for (i in 2:length(high)) {
-    if (status.xo[i-1] == "X") {
-      # we are in X-mode
-      if (high[i] > nextX[i-1]) {
-        # we made a new X
-        status.xo[i] <- "X"
-        boxnumber[i] = quote2box(quote=high[i],boxsize=boxsize,log=log)
-        nextX[i] <- nextBox(high[i],"X", boxsize=boxsize,log=log)
-        lastNextX[i] <- lastNextX[i-1]
-        nextO[i] <- nextReversal(quote=high[i],status="X",reversal=reversal,boxsize=boxsize,log=log)
-        lastNextO[i] <- lastNextO[i-1]
-        column[i] = column[i-1]
-        if (high[i] > lastNextX[i-1])
-          status.bs[i] <- "Buy"
-        else
+  if (length(high)>1) {
+    # pnfprocessor
+    for (i in 2:length(high)) {
+      if (status.xo[i-1] == "X") {
+        # we are in X-mode
+        if (high[i] >= nextX[i-1]) {
+          # we made a new X
+          status.xo[i] <- "X"
+          boxnumber[i] = quoteToBoxnumber(quote=high[i], status=status.xo[i], boxsize=boxsize,log=log)
+          nextX[i] <- nextBox(high[i],status.xo[i], boxsize=boxsize,log=log)
+          lastNextX[i] <- lastNextX[i-1]
+          nextO[i] <- nextReversal(quote=high[i],status.xo[i],reversal=reversal,boxsize=boxsize,log=log)
+          lastNextO[i] <- lastNextO[i-1]
+          column[i] = column[i-1]
+          if (high[i] >= lastNextX[i-1])
+            status.bs[i] <- "Buy"
+          else
+            status.bs[i] <- status.bs[i-1]
+        } else if (low[i] <= nextO[i-1]) {
+          # we made a reversal to O
+          status.xo[i] <- "O"
+          boxnumber[i] = quoteToBoxnumber(quote=low[i], status=status.xo[i], boxsize=boxsize,log=log)
+          nextX[i] <- nextReversal(low[i],status.xo[i],reversal=reversal,boxsize=boxsize,log=log)
+          lastNextX[i] <- nextX[i-1]
+          nextO[i] <- nextBox(low[i],status.xo[i], boxsize=boxsize,log=log)
+          lastNextO[i] <- lastNextO[i-1]
+          column[i] = column[i-1]+1
+          if (low[i] <= lastNextO[i-1])
+            status.bs[i] <- "Sell"
+          else
+            status.bs[i] <- status.bs[i-1]
+        } else {
+          # nothing new happened
+          status.xo[i] <- status.xo[i-1]
+          boxnumber[i] = quoteToBoxnumber(quote=high[i], status=status.xo[i], boxsize=boxsize,log=log)
           status.bs[i] <- status.bs[i-1]
-      } else if (low[i] < nextO[i-1]) {
-        # we made a reversal to O
-        status.xo[i] <- "O"
-        boxnumber[i] = quote2box(quote=low[i],boxsize=boxsize,log=log)
-        nextX[i] <- nextReversal(low[i],"O",reversal=reversal,boxsize=boxsize,log=log)
-        lastNextX[i] <- nextX[i-1]
-        nextO[i] <- nextBox(low[i],"O", boxsize=boxsize,log=log)
-        lastNextO[i] <- lastNextO[i-1]
-        column[i] = column[i-1]+1
-        if (low[i] < lastNextO[i-1])
-          status.bs[i] <- "Sell"
-        else
+          nextX[i] <- nextX[i-1]
+          lastNextX[i] <- lastNextX[i-1]
+          nextO[i] <- nextO[i-1]
+          lastNextO[i] <- lastNextO[i-1]
+          column[i] = column[i-1]
+        }
+      } else if (status.xo[i-1]=="O"){
+        # we are in O-mode
+        if (low[i] <= nextO[i-1]) {
+          # we made a new O
+          status.xo[i] <- "O"
+          boxnumber[i] = quoteToBoxnumber(quote=low[i], status=status.xo[i], boxsize=boxsize,log=log)
+          nextO[i] <- nextBox(low[i],"O", boxsize=boxsize,log=log)
+          lastNextO[i] <- lastNextO[i-1]
+          nextX[i] <- nextReversal(low[i],"O",reversal=reversal,boxsize=boxsize,log=log)
+          lastNextX[i] <- lastNextX[i-1]
+          column[i] = column[i-1]
+          if (low[i] <= lastNextO[i-1])
+            status.bs[i] <- "Sell"
+          else
+            status.bs[i] <- status.bs[i-1]        
+        } else if (high[i] >= nextX[i-1]) {
+          # we made a reversal to X
+          status.xo[i] <- "X"
+          boxnumber[i] = quoteToBoxnumber(quote=high[i], status=status.xo[i], boxsize=boxsize,log=log)
+          nextO[i] <- nextReversal(high[i],status.xo[i],reversal=reversal,boxsize=boxsize,log=log)
+          lastNextO[i] <- nextO[i-1]
+          nextX[i] <- nextBox(high[i],status.xo[i], boxsize=boxsize,log=log)
+          lastNextX[i] <- lastNextX[i-1]
+          column[i] = column[i-1]+1
+          if (high[i] >= lastNextX[i-1])
+            status.bs[i] <- "Buy"
+          else
+            status.bs[i] <- status.bs[i-1]
+        } else {
+          # nothing new happened
+          status.xo[i] <- status.xo[i-1]
+          boxnumber[i] = quoteToBoxnumber(quote=low[i], status=status.xo[i], boxsize=boxsize,log=log)
           status.bs[i] <- status.bs[i-1]
+          nextX[i] <- nextX[i-1]
+          lastNextX[i] <- lastNextX[i-1]
+          nextO[i] <- nextO[i-1]
+          lastNextO[i] <- lastNextO[i-1]
+          column[i] = column[i-1]
+        }
       } else {
-        # nothing new happened
-        status.xo[i] <- status.xo[i-1]
-        boxnumber[i] = quote2box(quote=high[i],boxsize=boxsize,log=log)
-        status.bs[i] <- status.bs[i-1]
-        nextX[i] <- nextX[i-1]
-        lastNextX[i] <- lastNextX[i-1]
-        nextO[i] <- nextO[i-1]
-        lastNextO[i] <- lastNextO[i-1]
-        column[i] = column[i-1]
-      }
-    } else {
-      # we are in O-mode
-      if (low[i] < nextO[i-1]) {
-        # we made a new O
-        status.xo[i] <- "O"
-        boxnumber[i] = quote2box(quote=low[i],boxsize=boxsize,log=log)
-        nextO[i] <- nextBox(low[i],"O", boxsize=boxsize,log=log)
-        lastNextO[i] <- lastNextO[i-1]
-        nextX[i] <- nextReversal(low[i],"O",reversal=reversal,boxsize=boxsize,log=log)
-        lastNextX[i] <- lastNextX[i-1]
-        column[i] = column[i-1]
-        if (low[i] < lastNextO[i-1])
-          status.bs[i] <- "Sell"
-        else
-          status.bs[i] <- status.bs[i-1]        
-      } else if (high[i] > nextX[i-1]) {
-        # we made a reversal to X
-        status.xo[i] <- "X"
-        boxnumber[i] = quote2box(quote=high[i],boxsize=boxsize,log=log)
-        nextO[i] <- nextReversal(high[i],"X",reversal=reversal,boxsize=boxsize,log=log)
-        lastNextO[i] <- nextO[i-1]
-        nextX[i] <- nextBox(high[i],"X", boxsize=boxsize,log=log)
-        lastNextX[i] <- lastNextX[i-1]
-        column[i] = column[i-1]+1
-        if (high[i] > lastNextX[i-1])
-          status.bs[i] <- "Buy"
-        else
-          status.bs[i] <- status.bs[i-1]
-      } else {
-        # nothing new happened
-        status.xo[i] <- status.xo[i-1]
-        boxnumber[i] = quote2box(quote=low[i],boxsize=boxsize,log=log)
-        status.bs[i] <- status.bs[i-1]
-        nextX[i] <- nextX[i-1]
-        lastNextX[i] <- lastNextX[i-1]
-        nextO[i] <- nextO[i-1]
-        lastNextO[i] <- lastNextO[i-1]
-        column[i] = column[i-1]
+        stop(paste0("Found illegal status ",status.xo[i-1],"!"))
       }
     }
   }
-  return (data.frame(date,high,low,boxnumber,column,status.xo,nextX,nextO,status.bs,lastNextX,lastNextO))
+  return (data.frame(date,high,low,boxnumber,column,status.xo,nextX,nextO,status.bs,lastNextX,lastNextO,stringsAsFactors = F))
 }
